@@ -3,6 +3,43 @@ import { createUser, getUserByEmail } from '../db/users'
 
 import express from 'express'
 
+/**
+ * Interface for the Response. 
+ */
+export interface IResponse {
+
+    /**
+     * The success message.
+     */
+    success?: string;
+
+    /**
+     * The error message.
+     */
+    error?: string;
+};
+
+
+/**
+ * Interface for the User Log in.
+ */
+export interface IUserLoginResponse extends IResponse {
+       /**
+        * The jwt token.
+        */
+       token?: string;
+
+       /**
+        * The users email address.
+        */
+       emailAddress?: string;
+   
+       /**
+        * The Username.
+        */
+       username?: string;
+};
+
 export const login = async (req: express.Request, res: express.Response) => {
     try {
         const { email, password } = req.body
@@ -27,12 +64,27 @@ export const login = async (req: express.Request, res: express.Response) => {
         user.authentication.sessionToken = authentication(salt, user._id.toString())
 
         await user.save()
-        res.cookie('ts-auth', user.authentication.sessionToken,  { domain:'localhost', path: '/', }) 
+        res.cookie('ts-auth', user.authentication.sessionToken,  { domain:'localhost', path: '/', })
 
-        return res.sendStatus(200).json(user).end()
+
+        const responseBody: IUserLoginResponse = {
+            token: user.authentication.sessionToken,
+            emailAddress: user.email,
+            username: user.username,
+            success: "User logged in succesfully"
+        }
+        
+        res.json(responseBody);
+        return res.sendStatus(200)
         
     } catch(error) {
         console.log(error)
+
+        const responseBody: IUserLoginResponse = {
+            error: `User failed to log in with the error ${error}`
+        }
+        
+        res.json(responseBody);
         return res.sendStatus(400)
     }
 }
@@ -61,7 +113,7 @@ export const register = async(req: express.Request, res: express.Response) => {
             }
         })
 
-        return res.sendStatus(200).json(user).end()
+        return res.sendStatus(200).json(user)
     } catch (error) {
         console.log(error)
         return res.sendStatus(400)
